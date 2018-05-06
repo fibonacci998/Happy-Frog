@@ -4,15 +4,23 @@ import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.util.Pair;
 import javax.imageio.ImageIO;
+import javax.swing.Action;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 /*
@@ -25,51 +33,68 @@ import javax.swing.Timer;
  *
  * @author tuans
  */
-public class Screen extends javax.swing.JFrame {
+public class Screen extends javax.swing.JFrame{
     
     /**
      * Creates new form Screen
      */
-    private static volatile boolean wPressed = false;
-    public static boolean isSpacePressed() {
-        synchronized (Screen.class) {
-            return wPressed;
-        }
-    }
+    Timer frog=null;
+    Timer pipe=null;
+    Timer pointTimer=null;
+    Thread frogThread=null;
+    Thread pipeThread=null;
+    Thread pointThread=null;
+    //Timer changePoint=null;
+    int status=0;
+    int point=0;
+    Deque<Pair<JButton,JButton>> dequePipeline=null;
     public Screen() {
         initComponents();
         initFrog();
-        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
-            @Override
-            public boolean dispatchKeyEvent(KeyEvent ke) {
-                synchronized (Screen.class) {
-                    switch (ke.getID()) {
-                    case KeyEvent.KEY_PRESSED:
-                        if (ke.getKeyCode() == KeyEvent.VK_W) {
-                            wPressed = true;
-                        }
-                        break;
-
-                    case KeyEvent.KEY_RELEASED:
-                        if (ke.getKeyCode() == KeyEvent.VK_W) {
-                            wPressed = false;
-                        }
-                        break;
+        initDequePipeline();
+        //initTimer();
+        initThread();
+        this.addKeyListener(new KeyAdapter() {
+            public void keyReleased(KeyEvent evt){
+                //lbPoint.setText(point+"");
+                if (evt.getKeyCode()==KeyEvent.VK_SPACE){
+//                    if (!frog.isRunning() && !pipe.isRunning()) {
+//                        frog.start();
+//                        pipe.start();
+//                        pointTimer.start();
+//                        status=1;
+//                    }
+                    if (!frogThread.isAlive()){
+                        frogThread.start();
+                        pipeThread.start();
+                        pointThread.start();
+                        status=1;
                     }
-                    return false;
+                    if (lbFrog.getY()-20<mainScreen.getY())
+                        lbFrog.setLocation(lbFrog.getX(), mainScreen.getY());
+                    else lbFrog.setLocation(lbFrog.getX(), lbFrog.getY()-20);
                 }
             }
         });
-        Timer t=new Timer(100, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                lbFrog.setLocation(lbFrog.getX(), lbFrog.getY()+5);
-                //lbFrog.setBounds(lbFrog.getX(), lbFrog.getY()+5, lbFrog.getWidth(), lbFrog.getHeight());
-            }
-        });
-        if (isSpacePressed()) 
-            t.start();
-        
+    }
+    void initDequePipeline(){
+        dequePipeline=new ArrayDeque<>();
+        dequePipeline.addLast(new Pair<>(pipeUp1,pipeDown1));
+        dequePipeline.addLast(new Pair<>(pipeUp2,pipeDown2));
+        dequePipeline.addLast(new Pair<>(pipeUp3,pipeDown3));
+        dequePipeline.addLast(new Pair<>(pipeUp4,pipeDown4));
+    }
+    Boolean isMeet(JButton pipeTemp){
+        if (pipeTemp.getX()<=(lbFrog.getX()+lbFrog.getWidth())){
+            return true;
+        }
+        return false;
+    }
+    void moveLeft(JButton pipeLine){
+        if (pipeLine.getX()<=mainScreen.getX()){
+            pipeLine.setLocation(mainScreen.getX()+mainScreen.getWidth(),pipeLine.getY());
+        }
+        else pipeLine.setLocation(pipeLine.getX()-5, pipeLine.getY());
     }
     void initFrog(){
         BufferedImage frogImg=null;
@@ -91,53 +116,112 @@ public class Screen extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel1 = new javax.swing.JPanel();
+        mainScreen = new javax.swing.JPanel();
         lbFrog = new javax.swing.JLabel();
         pipeUp1 = new javax.swing.JButton();
         pipeDown1 = new javax.swing.JButton();
+        pipeUp2 = new javax.swing.JButton();
+        pipeDown2 = new javax.swing.JButton();
+        pipeUp3 = new javax.swing.JButton();
+        pipeDown3 = new javax.swing.JButton();
+        pipeUp4 = new javax.swing.JButton();
+        pipeDown4 = new javax.swing.JButton();
         btnPause = new javax.swing.JButton();
         btnSave = new javax.swing.JButton();
         btnExit = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
+        lbPoint = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jPanel1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 51, 255)));
+        mainScreen.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 51, 255)));
 
         lbFrog.setBackground(new java.awt.Color(255, 255, 0));
         lbFrog.setOpaque(true);
 
         pipeUp1.setBackground(new java.awt.Color(0, 255, 255));
         pipeUp1.setForeground(new java.awt.Color(153, 153, 153));
+        pipeUp1.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        pipeUp1.setFocusable(false);
+        pipeUp1.setName("pipeUp1"); // NOI18N
 
         pipeDown1.setBackground(new java.awt.Color(51, 255, 204));
         pipeDown1.setForeground(new java.awt.Color(0, 255, 0));
+        pipeDown1.setFocusable(false);
+        pipeDown1.setName("pipeDown1"); // NOI18N
         pipeDown1.setOpaque(false);
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(38, 38, 38)
-                .addComponent(lbFrog, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(110, 110, 110)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(pipeUp1, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(pipeDown1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        pipeUp2.setBackground(new java.awt.Color(255, 0, 255));
+        pipeUp2.setFocusable(false);
+        pipeUp2.setName("pipeUp2"); // NOI18N
+
+        pipeDown2.setBackground(new java.awt.Color(0, 204, 0));
+        pipeDown2.setFocusable(false);
+
+        pipeUp3.setBackground(new java.awt.Color(204, 255, 51));
+        pipeUp3.setFocusable(false);
+
+        pipeDown3.setBackground(new java.awt.Color(0, 0, 255));
+        pipeDown3.setFocusable(false);
+
+        pipeUp4.setBackground(new java.awt.Color(51, 255, 102));
+        pipeUp4.setFocusable(false);
+
+        pipeDown4.setBackground(new java.awt.Color(153, 0, 102));
+        pipeDown4.setFocusable(false);
+
+        javax.swing.GroupLayout mainScreenLayout = new javax.swing.GroupLayout(mainScreen);
+        mainScreen.setLayout(mainScreenLayout);
+        mainScreenLayout.setHorizontalGroup(
+            mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, mainScreenLayout.createSequentialGroup()
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(mainScreenLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(lbFrog, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(mainScreenLayout.createSequentialGroup()
+                        .addGap(108, 108, 108)
+                        .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(pipeUp1, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(pipeDown1, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(pipeUp2, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pipeDown2, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(74, 74, 74)
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(pipeDown3, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pipeUp3, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(96, 96, 96)
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(pipeUp4, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pipeDown4, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)))
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(pipeUp1, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 31, Short.MAX_VALUE)
+        mainScreenLayout.setVerticalGroup(
+            mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(mainScreenLayout.createSequentialGroup()
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(pipeUp1, javax.swing.GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE)
+                    .addComponent(pipeUp2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(pipeDown2, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pipeDown1, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE)))
+            .addGroup(mainScreenLayout.createSequentialGroup()
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(pipeUp3, javax.swing.GroupLayout.DEFAULT_SIZE, 73, Short.MAX_VALUE)
+                    .addComponent(pipeUp4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(mainScreenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(pipeDown4, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(pipeDown3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE)))
+            .addGroup(mainScreenLayout.createSequentialGroup()
+                .addContainerGap(98, Short.MAX_VALUE)
                 .addComponent(lbFrog, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(27, 27, 27)
-                .addComponent(pipeDown1, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(94, 94, 94))
         );
 
         btnPause.setText("Pause");
+        btnPause.setFocusable(false);
         btnPause.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnPauseActionPerformed(evt);
@@ -145,15 +229,17 @@ public class Screen extends javax.swing.JFrame {
         });
 
         btnSave.setText("Save");
+        btnSave.setFocusable(false);
 
         btnExit.setText("Exit");
+        btnExit.setFocusable(false);
         btnExit.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnExitActionPerformed(evt);
             }
         });
 
-        jLabel1.setText("jLabel1");
+        lbPoint.setText("Points: 0");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -162,14 +248,14 @@ public class Screen extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(mainScreen, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(btnPause)
                         .addGap(54, 54, 54)
                         .addComponent(btnSave)
                         .addGap(56, 56, 56)
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 112, Short.MAX_VALUE)
+                        .addComponent(lbPoint)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 101, Short.MAX_VALUE)
                         .addComponent(btnExit)))
                 .addContainerGap())
         );
@@ -177,14 +263,14 @@ public class Screen extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(29, 29, 29)
+                .addComponent(mainScreen, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(30, 30, 30)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnPause)
                     .addComponent(btnSave)
                     .addComponent(btnExit)
-                    .addComponent(jLabel1))
-                .addContainerGap(54, Short.MAX_VALUE))
+                    .addComponent(lbPoint))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
@@ -196,8 +282,31 @@ public class Screen extends javax.swing.JFrame {
     }//GEN-LAST:event_btnExitActionPerformed
 
     private void btnPauseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPauseActionPerformed
-        // TODO add your handling code here:
-        lbFrog.setBounds(lbFrog.getX(), lbFrog.getY()+10, lbFrog.getWidth(), lbFrog.getHeight());
+        if (frogThread.isAlive())
+        try {
+            // TODO add your handling code here:
+            //lbFrog.setBounds(lbFrog.getX(), lbFrog.getY()+10, lbFrog.getWidth(), lbFrog.getHeight());
+            synchronized(this){
+                this.wait();
+            }
+            
+//        if (status==1 && frog.isRunning() && pipe.isRunning()){
+//            frog.stop();
+//            pipe.stop();
+//            status=0;
+//            btnPause.setText("Resume");
+//        }
+//        else if (status==0){
+//            frog.start();
+//            pipe.start();
+//            status=1;
+//            btnPause.setText("Pause");
+//        }
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Screen.class.getName()).log(Level.SEVERE, null, ex);
+        }else{
+            frogThread.notify();
+        }
     }//GEN-LAST:event_btnPauseActionPerformed
 
     /**
@@ -239,10 +348,120 @@ public class Screen extends javax.swing.JFrame {
     private javax.swing.JButton btnExit;
     private javax.swing.JButton btnPause;
     private javax.swing.JButton btnSave;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JPanel jPanel1;
     private javax.swing.JLabel lbFrog;
+    private javax.swing.JLabel lbPoint;
+    private javax.swing.JPanel mainScreen;
     private javax.swing.JButton pipeDown1;
+    private javax.swing.JButton pipeDown2;
+    private javax.swing.JButton pipeDown3;
+    private javax.swing.JButton pipeDown4;
     private javax.swing.JButton pipeUp1;
+    private javax.swing.JButton pipeUp2;
+    private javax.swing.JButton pipeUp3;
+    private javax.swing.JButton pipeUp4;
     // End of variables declaration//GEN-END:variables
+
+    private void initTimer() {
+        frog=new Timer(20, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                lbFrog.setLocation(lbFrog.getX(), lbFrog.getY()+1);
+            }
+        });
+        Thread t=new Thread();
+        
+        pipe=new Timer(100, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                moveLeft(pipeDown1);
+                moveLeft(pipeUp1);
+                moveLeft(pipeDown2);
+                moveLeft(pipeUp2);
+                moveLeft(pipeDown3);
+                moveLeft(pipeUp3);
+                moveLeft(pipeDown4);
+                moveLeft(pipeUp4);
+            }
+        });
+        pointTimer=new Timer(20, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JButton pipeUp=dequePipeline.getFirst().getKey();
+                JButton pipeDown=dequePipeline.getFirst().getValue();
+                if (isMeet(pipeDown) && isMeet(pipeUp)){
+                    Pair tempPair=dequePipeline.poll();
+                    dequePipeline.addLast(tempPair);
+                    int pointUpFrog=lbFrog.getY();
+                    int pointDownFrog=lbFrog.getY()+lbFrog.getHeight();
+                    int pointPipeUp=pipeUp.getY()+pipeUp.getHeight();
+                    int pointPipeDown=pipeDown.getY();
+                    if (pointPipeUp<pointUpFrog && pointDownFrog<pointPipeDown){
+                        point++;
+                        System.out.println(point);
+                        //lbPoint.setText("Points: "+point);
+                    }
+                }           
+            }
+        });
+    }
+
+    private void initThread() {
+        frogThread=new Thread(){
+            public void run(){
+                while(true){
+                    lbFrog.setLocation(lbFrog.getX(), lbFrog.getY()+1);
+                    try {
+                        sleep(20);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Screen.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        };
+        pipeThread=new Thread(){
+            public void run(){
+                while(true){
+                    moveLeft(pipeDown1);
+                    moveLeft(pipeUp1);
+                    moveLeft(pipeDown2);
+                    moveLeft(pipeUp2);
+                    moveLeft(pipeDown3);
+                    moveLeft(pipeUp3);
+                    moveLeft(pipeDown4);
+                    moveLeft(pipeUp4);
+                    try {
+                        sleep(100);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Screen.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        };
+        pointThread=new Thread(){
+            public void run(){
+                while (true){
+                    JButton pipeUp=dequePipeline.getFirst().getKey();
+                    JButton pipeDown=dequePipeline.getFirst().getValue();
+                    if (isMeet(pipeDown) && isMeet(pipeUp)){
+                        Pair tempPair=dequePipeline.poll();
+                        dequePipeline.addLast(tempPair);
+                        int pointUpFrog=lbFrog.getY();
+                        int pointDownFrog=lbFrog.getY()+lbFrog.getHeight();
+                        int pointPipeUp=pipeUp.getY()+pipeUp.getHeight();
+                        int pointPipeDown=pipeDown.getY();
+                        if (pointPipeUp<pointUpFrog && pointDownFrog<pointPipeDown){
+                            point++;
+                            System.out.println(point);
+                            //lbPoint.setText("Points: "+point);
+                        }
+                    }
+                    try {
+                        sleep(20);
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Screen.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        };
+    }
 }
